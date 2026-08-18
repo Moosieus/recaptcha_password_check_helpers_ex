@@ -1,0 +1,80 @@
+[
+  {
+    "username": "jonsnow",
+    "password": "Targaryen",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "leakedusername",
+    "password": "leakedpassword",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "test",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "Test",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "test.test",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "test@example.com",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "test.name@ex.com",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "\u00e4\u00f6\u00fc\u65e5\u672c\u8a9e\u0627\u0644\u0639\u064e\u0631\u064e\u0628\u0650\u064a\u064e\u0651\u0629",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "\u4f8b\u3048@\u4f8b\u3048.\u30c6\u30b9\u30c8",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "@nolocalpart",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "a@b@c",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "MiXeD.CaSe@Example.COM",
+    "password": "pw",
+    "client_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  },
+  {
+    "username": "jonsnow",
+    "password": "Targaryen",
+    "client_private_key_hex": "112233445566778899aabbccddeeff00112233445566778899aabbccddeeff01",
+    "server_private_key_hex": "2f2e2d2c2b2a292827262524232221201f1e1d1c1b1a19181716151413121110"
+  }
+]
