@@ -31,7 +31,7 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   The root is normalised to the even y for every point, matching the reference implementation,
   which negates any root whose low bit is set.
   """
-  def hash_into_the_curve(message, hash \\ :sha256) do
+  def hash_into_the_curve(message, hash \\ :sha256) when is_binary(message) do
     message
     |> random_oracle(P256.p(), hash)
     |> find_point(hash)
@@ -41,7 +41,7 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   @doc """
   Encrypts `message` under `key`: hashes onto the curve, then multiplies by the scalar.
   """
-  def encrypt(key, message, hash \\ :sha256) do
+  def encrypt(key, message, hash \\ :sha256) when is_integer(key) and is_binary(message) do
     message
     |> random_oracle(P256.p(), hash)
     |> find_point(hash)
@@ -54,7 +54,7 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
 
   Raises when `ciphertext` is not a valid point.
   """
-  def re_encrypt(key, ciphertext) do
+  def re_encrypt(key, ciphertext) when is_integer(key) and is_binary(ciphertext) do
     ciphertext
     |> P256.decompress!()
     |> P256.multiply(key)
@@ -67,7 +67,7 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   Does not reverse the hash onto the curve, so the result is a point rather than the original
   message. Raises when `ciphertext` is not a valid point.
   """
-  def decrypt(key, ciphertext) do
+  def decrypt(key, ciphertext) when is_integer(key) and is_binary(ciphertext) do
     ciphertext
     |> P256.decompress!()
     |> P256.multiply(P256.scalar_inverse(key))

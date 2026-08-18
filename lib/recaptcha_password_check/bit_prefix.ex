@@ -23,7 +23,7 @@ defmodule RecaptchaPasswordCheck.BitPrefix do
             "invalid length of bytes array: #{bit_size(binary)} bits available, #{bits} requested"
     end
 
-    <<value::unsigned-big-integer-size(bits), _::bitstring>> = binary
+    <<value::unsigned-big-integer-size(^bits), _::bitstring>> = binary
     %__MODULE__{bits: bits, value: value}
   end
 

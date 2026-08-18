@@ -22,7 +22,7 @@ defmodule RecaptchaPasswordCheck.ParityTest do
 
   if File.exists?(@fixture) do
     setup_all do
-      %{"vectors" => vectors} = @fixture |> File.read!() |> Jason.decode!()
+      %{"vectors" => vectors} = @fixture |> File.read!() |> JSON.decode!()
 
       {:ok, vectors: vectors}
     end
@@ -121,30 +121,38 @@ defmodule RecaptchaPasswordCheck.ParityTest do
       end
     end
 
-    test "the composed request payload matches", %{vectors: vectors} do
+    # The client key cancels out of the exchange — `c⁻¹ · s · c · H(m) == s · H(m)` — so a key
+    # generated inside `create/2` still has to land on Java's post-decryption value. That covers
+    # the composed payload end to end without the public API accepting a key.
+    test "a freshly keyed verification reproduces Java's decrypted value", %{vectors: vectors} do
       for vector <- vectors do
-        client_key = key(vector["client_private_key_hex"])
-        verification = Verification.create(vector["username"], vector["password"], client_key)
+        verification = Verification.create(vector["username"], vector["password"])
+        server_key = key(vector["server_private_key_hex"])
+        reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
-        assert hex(verification.lookup_hash_prefix) == vector["lookup_hash_prefix_hex"]
+        rehashed =
+          verification.private_key
+          |> Cipher.decrypt(reencrypted)
+          |> CryptoHelper.hash_blinded_hash()
 
-        assert hex(verification.encrypted_user_credentials_hash) ==
-                 vector["encrypted_credentials_hash_hex"],
-               "composed payload diverged for #{inspect(vector["username"])}"
+        assert hex(verification.lookup_hash_prefix) == vector["lookup_hash_prefix_hex"],
+               "composed bucket prefix diverged for #{inspect(vector["username"])}"
+
+        assert hex(rehashed) == vector["rehashed_decrypted_hex"],
+               "key cancellation diverged for #{inspect(vector["username"])}"
       end
     end
 
-    test "a Java-produced response is read as leaked", %{vectors: vectors} do
+    test "a Java-produced match prefix is read as leaked", %{vectors: vectors} do
       for vector <- vectors do
-        client_key = key(vector["client_private_key_hex"])
-        verification = Verification.create(vector["username"], vector["password"], client_key)
+        verification = Verification.create(vector["username"], vector["password"])
+        server_key = key(vector["server_private_key_hex"])
+        reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
         result =
-          Verification.verify(
-            verification,
-            unhex(vector["server_reencrypted_hex"]),
-            [unhex(vector["server_match_prefix_hex"])]
-          )
+          Verification.verify(verification, reencrypted, [
+            unhex(vector["server_match_prefix_hex"])
+          ])
 
         assert result.leaked?, "verify/3 missed a known match for #{inspect(vector["username"])}"
       end
@@ -152,15 +160,14 @@ defmodule RecaptchaPasswordCheck.ParityTest do
 
     test "an unrelated match prefix is not read as leaked", %{vectors: vectors} do
       for vector <- vectors do
-        client_key = key(vector["client_private_key_hex"])
-        verification = Verification.create(vector["username"], vector["password"], client_key)
+        verification = Verification.create(vector["username"], vector["password"])
+        server_key = key(vector["server_private_key_hex"])
+        reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
         result =
-          Verification.verify(
-            verification,
-            unhex(vector["server_reencrypted_hex"]),
-            [:crypto.hash(:sha256, "unrelated") |> binary_part(0, 20)]
-          )
+          Verification.verify(verification, reencrypted, [
+            binary_part(:crypto.hash(:sha256, "unrelated"), 0, 20)
+          ])
 
         refute result.leaked?
       end

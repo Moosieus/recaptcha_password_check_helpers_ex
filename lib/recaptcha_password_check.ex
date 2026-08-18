@@ -33,12 +33,8 @@ defmodule RecaptchaPasswordCheck do
   Builds a verification for a username and password.
 
   Runs scrypt and an elliptic curve multiplication, so expect low tens of milliseconds.
-
-  Pass `private_key` only from tests to make the output deterministic.
   """
-  def create_verification(username, password, private_key \\ nil) do
-    Verification.create(username, password, private_key)
-  end
+  defdelegate create_verification(username, password), to: Verification, as: :create
 
   @doc """
   Interprets the service's response against the verification that produced it.

@@ -59,23 +59,12 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
                Verification.create("foo", "bar").private_key
     end
 
-    test "accepts an explicit key for deterministic output" do
-      key = Cipher.new_key()
-
-      assert Verification.create("foo", "bar", key).encrypted_user_credentials_hash ==
-               Verification.create("foo", "bar", key).encrypted_user_credentials_hash
-    end
-
     test "rejects an empty username" do
-      assert_raise ArgumentError, "Username cannot be null or empty", fn ->
-        Verification.create("", "bar")
-      end
+      assert_raise FunctionClauseError, fn -> Verification.create("", "bar") end
     end
 
     test "rejects an empty password" do
-      assert_raise ArgumentError, "Password cannot be null or empty", fn ->
-        Verification.create("foo", "")
-      end
+      assert_raise FunctionClauseError, fn -> Verification.create("foo", "") end
     end
 
     test "redacts the private key when inspected" do
@@ -112,6 +101,14 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
       refute Verification.verify(verification, reencrypted, []).leaked?
     end
 
+    # Proof the short-circuit is live: an empty bucket is already the answer, so the reencrypted
+    # hash is never decrypted and never has to be a valid point.
+    test "an empty bucket answers without touching the reencrypted hash" do
+      verification = Verification.create("foo", "bar")
+
+      refute Verification.verify(verification, "not a valid curve point", []).leaked?
+    end
+
     test "returns the username alongside the verdict" do
       verification = Verification.create("foo", "bar")
       {reencrypted, prefixes} = FakeService.respond(verification, [{"foo", "bar"}])
@@ -124,6 +121,13 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
       {reencrypted, _} = FakeService.respond(verification, [])
 
       refute Verification.verify(verification, reencrypted, [""]).leaked?
+    end
+
+    test "ignores a prefix longer than the hash it would match against" do
+      verification = Verification.create("foo", "bar")
+      {reencrypted, _} = FakeService.respond(verification, [])
+
+      refute Verification.verify(verification, reencrypted, [:crypto.strong_rand_bytes(33)]).leaked?
     end
 
     test "a canonicalizing username still matches the canonical leak entry" do
@@ -144,7 +148,7 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
     test "rejects an empty reencrypted hash" do
       verification = Verification.create("foo", "bar")
 
-      assert_raise ArgumentError, fn -> Verification.verify(verification, "", [<<1>>]) end
+      assert_raise FunctionClauseError, fn -> Verification.verify(verification, "", [<<1>>]) end
     end
   end
 end

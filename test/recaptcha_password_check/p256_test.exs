@@ -7,6 +7,11 @@ defmodule RecaptchaPasswordCheck.P256Test do
   # any: OTP ships a P-256 implementation, and ECDH exercises exactly the
   # operation implemented here. `generate_key/3` gives `k * G`, and
   # `compute_key/4` gives the x-coordinate of `k * P` for an arbitrary `P`.
+  #
+  # These comparisons are what make this module safe to refactor: an error that
+  # survives a few hundred random scalars checked against an independent
+  # implementation is not a realistic failure mode.
+  @cross_check_rounds 200
   defp priv(k), do: <<k::unsigned-big-integer-size(256)>>
 
   defp uncompressed_to_point(
@@ -14,9 +19,26 @@ defmodule RecaptchaPasswordCheck.P256Test do
        ),
        do: {x, y}
 
+  describe "curve parameters" do
+    # The parameters are read from OTP's table at compile time, so there is nothing to compare them
+    # against. What is worth asserting is that they satisfy the properties this module relies on.
+    test "a is p - 3, as for every short Weierstrass NIST curve" do
+      assert P256.a() == P256.p() - 3
+    end
+
+    test "the field is 256 bits, so points compress to 33 bytes" do
+      assert P256.p() |> Integer.to_string(2) |> byte_size() == 256
+      assert byte_size(P256.compress(P256.generator())) == 33
+    end
+
+    test "the generator lies on the curve" do
+      assert P256.on_curve?(P256.generator())
+    end
+  end
+
   describe "multiply/2 against :crypto" do
     test "matches OTP for scalar multiplication of the generator" do
-      for _ <- 1..20 do
+      for _ <- 1..@cross_check_rounds do
         k = P256.random_scalar()
         {public, _private} = :crypto.generate_key(:ecdh, :secp256r1, priv(k))
 
@@ -25,7 +47,7 @@ defmodule RecaptchaPasswordCheck.P256Test do
     end
 
     test "matches OTP ECDH for scalar multiplication of an arbitrary point" do
-      for _ <- 1..20 do
+      for _ <- 1..@cross_check_rounds do
         peer_scalar = P256.random_scalar()
         {peer_public, _} = :crypto.generate_key(:ecdh, :secp256r1, priv(peer_scalar))
         peer_point = uncompressed_to_point(peer_public)

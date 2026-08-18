@@ -2,27 +2,41 @@ defmodule RecaptchaPasswordCheck.P256 do
   @moduledoc """
   Arithmetic on the NIST P-256 (secp256r1) curve `y² = x³ + ax + b mod p`.
 
-  Erlang's `:crypto` exposes no scalar multiplication of an arbitrary point — ECDH
-  returns only the shared x-coordinate, and this protocol needs full compressed
-  points — so the group law is implemented here. Field inversion and square roots
-  delegate to `:crypto.mod_pow/3`.
-
-  Points are `{x, y}` tuples in affine coordinates, or `:infinity`.
-
   > #### Timing {: .warning}
   >
-  > Scalar multiplication uses a Montgomery ladder, so the sequence of group
-  > operations does not depend on the scalar's bits. It is *not* constant time in
-  > the strict sense: the BEAM's bignum arithmetic is itself variable time. See
-  > the README for the threat model this is acceptable under.
+  > Scalar multiplication uses a Montgomery ladder, so the sequence of group operations does not
+  > depend on the scalar's bits. It is *not* constant time in the strict sense: the BEAM's bignum
+  > arithmetic is itself variable time. See the README for the threat model this is acceptable
+  > under.
   """
 
-  @p 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
-  @a 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC
-  @b 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
-  @gx 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296
-  @gy 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5
-  @n 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+  # Parameters come from OTP's own curve table rather than being transcribed, so there is no
+  # hand-typed constant to get wrong. Read at compile time so they stay usable in guards.
+  {{:prime_field, field}, {coefficient_a, coefficient_b, _seed}, generator, group_order, cofactor} =
+    :crypto.ec_curve(:secp256r1)
+
+  <<4, generator_x::unsigned-big-integer-size(256), generator_y::unsigned-big-integer-size(256)>> =
+    generator
+
+  @p :binary.decode_unsigned(field)
+  @a :binary.decode_unsigned(coefficient_a)
+  @b :binary.decode_unsigned(coefficient_b)
+  @n :binary.decode_unsigned(group_order)
+  @gx generator_x
+  @gy generator_y
+
+  # `sqrt/1` takes the root as `v^((p+1)/4)`, which is only a root when `p ≡ 3 (mod 4)`. Fail the
+  # build rather than silently compute wrong roots.
+  if rem(@p, 4) != 3 do
+    raise "#{inspect(__MODULE__)}.sqrt/1 assumes p ≡ 3 (mod 4), which this curve violates"
+  end
+
+  # Cofactor 1 means every point of the curve generates the whole group, so a point that satisfies
+  # the curve equation cannot sit in a small subgroup. `decompress/1` therefore needs no
+  # subgroup check beyond `on_curve?/1`.
+  if :binary.decode_unsigned(cofactor) != 1 do
+    raise "#{inspect(__MODULE__)} assumes a cofactor of 1"
+  end
 
   @doc "Field characteristic."
   def p, do: @p
@@ -42,39 +56,41 @@ defmodule RecaptchaPasswordCheck.P256 do
   @doc "Whether `point` satisfies the curve equation. `:infinity` is not considered on the curve."
   def on_curve?(:infinity), do: false
 
-  def on_curve?({x, y}) when x >= 0 and x < @p and y >= 0 and y < @p do
+  def on_curve?({x, y})
+      when is_integer(x) and is_integer(y) and x >= 0 and x < @p and y >= 0 and y < @p do
     rem(y * y - (x * x * x + @a * x + @b), @p) == 0
   end
 
   def on_curve?(_), do: false
 
   @doc "Modular inverse of `k` in the field, via Fermat's little theorem."
-  def field_inverse(k) when k > 0, do: mod_pow(k, @p - 2, @p)
+  def field_inverse(k) when is_integer(k) and k > 0, do: mod_pow(k, @p - 2, @p)
 
   @doc "Modular inverse of `k` modulo the group order."
-  def scalar_inverse(k) when k > 0, do: mod_pow(k, @n - 2, @n)
+  def scalar_inverse(k) when is_integer(k) and k > 0, do: mod_pow(k, @n - 2, @n)
 
   @doc """
   Modular square root of `v` in the field, or `nil` when `v` is not a quadratic residue.
 
   `p ≡ 3 (mod 4)`, so the candidate root is `v^((p+1)/4)`, verified by squaring.
   """
-  def sqrt(v) do
+  def sqrt(v) when is_integer(v) do
     candidate = mod_pow(v, div(@p + 1, 4), @p)
     if rem(candidate * candidate, @p) == rem(v, @p), do: candidate
   end
 
   @doc "Right-hand side of the curve equation for `x`."
-  def rhs(x), do: rem(x * x * x + @a * x + @b, @p)
+  def rhs(x) when is_integer(x), do: rem(x * x * x + @a * x + @b, @p)
 
   @doc "Point doubling."
   def double(:infinity), do: :infinity
   def double({_x, 0}), do: :infinity
 
-  def double({x, y}) do
-    lambda = rem((3 * x * x + @a) * field_inverse(2 * y), @p)
-    xr = rem(lambda * lambda - 2 * x, @p) |> norm()
-    yr = rem(lambda * (x - xr) - y, @p) |> norm()
+  def double({x, y}) when is_integer(x) and is_integer(y) do
+    # Tangent slope λ = (3x² + a) / 2y, then x₃ = λ² - 2x and y₃ = λ(x - x₃) - y.
+    lambda = norm((3 * x * x + @a) * field_inverse(2 * y))
+    xr = norm(lambda * lambda - 2 * x)
+    yr = norm(lambda * (x - xr) - y)
     {xr, yr}
   end
 
@@ -82,12 +98,14 @@ defmodule RecaptchaPasswordCheck.P256 do
   def add(:infinity, q), do: q
   def add(p, :infinity), do: p
 
-  def add({x1, y1}, {x2, y2}) do
+  def add({x1, y1}, {x2, y2})
+      when is_integer(x1) and is_integer(y1) and is_integer(x2) and is_integer(y2) do
     cond do
+      # Chord slope λ = (y₂ - y₁) / (x₂ - x₁), then x₃ = λ² - x₁ - x₂ and y₃ = λ(x₁ - x₃) - y₁.
       x1 != x2 ->
         lambda = norm((y2 - y1) * field_inverse(norm(x2 - x1)))
-        xr = rem(lambda * lambda - x1 - x2, @p) |> norm()
-        yr = rem(lambda * (x1 - xr) - y1, @p) |> norm()
+        xr = norm(lambda * lambda - x1 - x2)
+        yr = norm(lambda * (x1 - xr) - y1)
         {xr, yr}
 
       y1 == y2 ->
@@ -104,10 +122,10 @@ defmodule RecaptchaPasswordCheck.P256 do
   The scalar is reduced modulo the group order first; a scalar congruent to zero
   yields `:infinity`.
   """
-  def multiply(_point, k) when k == 0, do: :infinity
-  def multiply(:infinity, _k), do: :infinity
+  def multiply(_point, k) when is_integer(k) and k == 0, do: :infinity
+  def multiply(:infinity, k) when is_integer(k), do: :infinity
 
-  def multiply(point, k) do
+  def multiply(point, k) when is_integer(k) do
     k = rem(k, @n)
 
     if k == 0 do
