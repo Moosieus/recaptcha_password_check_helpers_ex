@@ -3,8 +3,9 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
   Username canonicalization and the two credential hashes the protocol sends.
 
   Both hashes mix in a constant salt taken from the reference implementation.
-  These salts are public — they exist only to force an attacker to build a
-  rainbow table specific to this protocol rather than reusing a generic one.
+
+  **These salts are public:** They exist only to force an attacker to build a rainbow table
+  specific to this protocol rather than reusing a generic one.
   """
 
   alias RecaptchaPasswordCheck.BitPrefix
@@ -31,10 +32,9 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
   @doc """
   Canonicalizes a username.
 
-  Drops everything from the first `@` onward, deletes every `.`, and lowercases
-  ASCII letters only. Non-ASCII characters are left alone, so `Ä` does not become
-  `ä` — the reference implementation folds case over ASCII exclusively and this
-  must match it byte for byte.
+  Drops everything from the first `@` onward, deletes every `.`, and lowercases ASCII letters
+  only. Non-ASCII characters are left alone, so `Ä` does not become `ä` — the reference
+  implementation folds case over ASCII exclusively and this must match it byte for byte.
 
       iex> RecaptchaPasswordCheck.CryptoHelper.canonicalize_username("Test.Name@Example.com")
       "testname"
@@ -49,8 +49,8 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
   @doc """
   Hashes a canonicalized username.
 
-  Deliberately fast: only a 26-bit prefix ever leaves the client, so this hash
-  does not need to resist offline attack.
+  Deliberately fast: only a 26-bit prefix ever leaves the client, so this hash does not need to
+  resist offline attack.
   """
   def hash_username(canonical_username) when is_binary(canonical_username) do
     :crypto.hash(:sha256, canonical_username <> @username_salt)
@@ -90,8 +90,8 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
   end
 
   @doc """
-  Re-hashes an encrypted credentials hash, which the service also does to every
-  leak it returns, so both sides compare uniformly distributed values.
+  Re-hashes an encrypted credentials hash, which the service also does to every leak it returns,
+  so both sides compare uniformly distributed values.
   """
   def hash_blinded_hash(blinded_hash) when is_binary(blinded_hash) do
     :crypto.hash(:sha256, blinded_hash)

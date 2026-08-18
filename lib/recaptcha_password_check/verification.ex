@@ -1,14 +1,6 @@
 defmodule RecaptchaPasswordCheck.Verification do
   @moduledoc """
   A single password check attempt.
-
-  Holds the two values sent to the service — the username bucket prefix and the
-  blinded credentials hash — plus the ephemeral private key needed to interpret
-  the response. The key never leaves this struct, so the same struct that built a
-  request must be used to read its reply.
-
-  Inspecting the struct redacts the private key, keeping it out of logs and crash
-  reports.
   """
 
   alias RecaptchaPasswordCheck.CryptoHelper
@@ -28,9 +20,8 @@ defmodule RecaptchaPasswordCheck.Verification do
   @doc """
   Builds a verification for `username` and `password`.
 
-  Generates a fresh private key unless one is supplied, which callers should do
-  only in tests — reusing a key across verifications makes the deterministic
-  encryption linkable.
+  Generates a fresh private key unless one is supplied, which callers should do only in tests —
+  reusing a key across verifications makes the deterministic encryption linkable.
 
   Raises `ArgumentError` when either credential is empty.
   """
@@ -62,9 +53,9 @@ defmodule RecaptchaPasswordCheck.Verification do
   @doc """
   Interprets a service response.
 
-  Strips this verification's encryption layer from `reencrypted_hash`, re-hashes
-  the result the way the service hashes every leak it stores, and reports whether
-  any entry in `match_prefixes` prefixes that value.
+  Strips this verification's encryption layer from `reencrypted_hash`, re-hashes the result the
+  way the service hashes every leak it stores, and reports whether any entry in `match_prefixes`
+  prefixes that value.
 
   Raises `ArgumentError` on an empty `reencrypted_hash`.
   """

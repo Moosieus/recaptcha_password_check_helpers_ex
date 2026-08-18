@@ -2,10 +2,10 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   @moduledoc """
   Commutative encryption over P-256, where `K₁(K₂(m)) == K₂(K₁(m))`.
 
-  Two parties use this to learn whether they hold the same value without either
-  revealing it. Encryption hashes the message onto the curve and multiplies by a
-  private scalar; because scalar multiplication commutes, the server can
-  re-encrypt a client ciphertext and the client can strip its own layer back off.
+  Two parties use this to learn whether they hold the same value without either revealing it.
+  Encryption hashes the message onto the curve and multiplies by a private scalar; because scalar
+  multiplication commutes, the server can re-encrypt a client ciphertext and the client can strip
+  its own layer back off.
 
   See ["Using Commutative Encryption to Share a Secret"](https://eprint.iacr.org/2008/356.pdf).
 
@@ -24,12 +24,12 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   @doc """
   Hashes `message` onto the curve, returning the compressed point.
 
-  Derives a candidate x-coordinate from a random oracle over `message` and takes
-  the positive root of `x³ + ax + b`; when that value is not a quadratic residue
-  the x-coordinate is re-hashed and the search repeats.
+  Derives a candidate x-coordinate from a random oracle over `message` and takes the positive
+  root of `x³ + ax + b`; when that value is not a quadratic residue the x-coordinate is re-hashed
+  and the search repeats.
 
-  The root is normalised to the even y for every point, matching the reference
-  implementation, which negates any root whose low bit is set.
+  The root is normalised to the even y for every point, matching the reference implementation,
+  which negates any root whose low bit is set.
   """
   def hash_into_the_curve(message, hash \\ :sha256) do
     message
@@ -64,8 +64,8 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   @doc """
   Removes this key's layer from `ciphertext` by multiplying by the scalar's inverse.
 
-  Does not reverse the hash onto the curve, so the result is a point rather than
-  the original message. Raises when `ciphertext` is not a valid point.
+  Does not reverse the hash onto the curve, so the result is a point rather than the original
+  message. Raises when `ciphertext` is not a valid point.
   """
   def decrypt(key, ciphertext) do
     ciphertext
@@ -77,9 +77,9 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
   @doc """
   Maps `message` deterministically into `[0, max_value)`.
 
-  Expands the digest by hashing a one-byte counter prefixed to the message,
-  concatenating successive digests, then reducing. The output is widened by an
-  extra hash length before reduction to limit modulo bias.
+  Expands the digest by hashing a one-byte counter prefixed to the message, concatenating
+  successive digests, then reducing. The output is widened by an extra hash length before
+  reduction to limit modulo bias.
   """
   def random_oracle(message, max_value, hash \\ :sha256) do
     hash_bits = Map.fetch!(@hash_bit_lengths, hash)
