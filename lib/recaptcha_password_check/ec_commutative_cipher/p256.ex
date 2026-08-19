@@ -1,4 +1,4 @@
-defmodule RecaptchaPasswordCheck.P256 do
+defmodule RecaptchaPasswordCheck.EcCommutativeCipher.P256 do
   @moduledoc false
   # Arithmetic on the NIST P-256 (secp256r1) curve `y² = x³ + ax + b mod p`.
   #

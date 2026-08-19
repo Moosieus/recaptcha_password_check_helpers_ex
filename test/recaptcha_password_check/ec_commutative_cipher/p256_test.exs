@@ -1,7 +1,7 @@
-defmodule RecaptchaPasswordCheck.P256Test do
+defmodule RecaptchaPasswordCheck.EcCommutativeCipher.P256Test do
   use ExUnit.Case, async: true
 
-  alias RecaptchaPasswordCheck.P256
+  alias RecaptchaPasswordCheck.EcCommutativeCipher.P256
 
   # The curve arithmetic has no reference vectors of its own, but it does not need
   # any: OTP ships a P-256 implementation, and ECDH exercises exactly the

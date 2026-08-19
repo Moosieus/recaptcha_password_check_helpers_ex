@@ -50,16 +50,7 @@ defmodule RecaptchaPasswordCheckHelpersEx.MixProject do
     [
       main: "readme",
       extras: ["README.md", "TESTING.md"],
-      source_ref: "v#{@version}",
-      groups_for_modules: [
-        Cryptography: [
-          RecaptchaPasswordCheck.CryptoHelper,
-          RecaptchaPasswordCheck.EcCommutativeCipher,
-          RecaptchaPasswordCheck.P256,
-          RecaptchaPasswordCheck.Scrypt,
-          RecaptchaPasswordCheck.BitPrefix
-        ]
-      ]
+      source_ref: "v#{@version}"
     ]
   end
 end

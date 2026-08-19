@@ -1,9 +1,9 @@
-defmodule RecaptchaPasswordCheck.BitPrefixTest do
+defmodule RecaptchaPasswordCheck.CryptoHelper.BitPrefixTest do
   use ExUnit.Case, async: true
 
-  alias RecaptchaPasswordCheck.BitPrefix
+  alias RecaptchaPasswordCheck.CryptoHelper.BitPrefix
 
-  doctest RecaptchaPasswordCheck.BitPrefix
+  doctest RecaptchaPasswordCheck.CryptoHelper.BitPrefix
 
   # Expected values copied from Google's published test suites, which are
   # themselves ports of google3 BitPrefixTest.java.
@@ -67,20 +67,6 @@ defmodule RecaptchaPasswordCheck.BitPrefixTest do
       assert <<0xCE, 0x8C, 0x59, 0xDF>>
              |> BitPrefix.of(12)
              |> BitPrefix.to_binary() == <<0xCE, 0x80>>
-    end
-  end
-
-  describe "to_binary/2" do
-    test "pads out to the requested width" do
-      assert <<0xCE, 0x8C, 0x59, 0xDF>>
-             |> BitPrefix.of(12)
-             |> BitPrefix.to_binary(4) == <<0xCE, 0x80, 0x00, 0x00>>
-    end
-
-    test "raises when the width cannot hold the prefix" do
-      assert_raise ArgumentError, fn ->
-        <<0xCE, 0x8C, 0x59, 0xDF>> |> BitPrefix.of(26) |> BitPrefix.to_binary(2)
-      end
     end
   end
 end

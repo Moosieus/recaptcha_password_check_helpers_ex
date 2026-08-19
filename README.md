@@ -1,6 +1,6 @@
 # RecaptchaPasswordCheck
 
-An Elixir workalike of Google's `recaptcha-password-check-helpers`, the client-side cryptography for reCAPTCHA's [private password leak
+An Elixir workalike of Google's [`java-recaptcha-password-check-helpers`](https://github.com/GoogleCloudPlatform/java-recaptcha-password-check-helpers), the client-side cryptography for reCAPTCHA's [private password leak
 check](https://docs.cloud.google.com/recaptcha/docs/check-passwords).
 
 ## Installation

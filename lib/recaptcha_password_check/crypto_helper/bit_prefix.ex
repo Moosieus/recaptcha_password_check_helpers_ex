@@ -1,4 +1,4 @@
-defmodule RecaptchaPasswordCheck.BitPrefix do
+defmodule RecaptchaPasswordCheck.CryptoHelper.BitPrefix do
   @moduledoc false
   # A bit-level prefix of a binary, truncated from the most significant end.
   #
@@ -13,7 +13,7 @@ defmodule RecaptchaPasswordCheck.BitPrefix do
 
   Raises when `binary` holds fewer than `bits` bits.
 
-      iex> RecaptchaPasswordCheck.BitPrefix.of(<<0xCE, 0x8C, 0x59, 0xDF>>, 26) |> RecaptchaPasswordCheck.BitPrefix.to_binary()
+      iex> RecaptchaPasswordCheck.CryptoHelper.BitPrefix.of(<<0xCE, 0x8C, 0x59, 0xDF>>, 26) |> RecaptchaPasswordCheck.CryptoHelper.BitPrefix.to_binary()
       <<0xCE, 0x8C, 0x59, 0xC0>>
   """
   def of(binary, bits) when is_binary(binary) and is_integer(bits) and bits >= 0 do
@@ -34,23 +34,10 @@ defmodule RecaptchaPasswordCheck.BitPrefix do
     <<value::unsigned-big-integer-size(bits), 0::size(padding)>>
   end
 
-  @doc """
-  Renders the prefix as a binary of exactly `byte_count` bytes, zero-filling.
-  """
-  def to_binary(%__MODULE__{bits: bits, value: value}, byte_count) do
-    padding = byte_count * 8 - bits
-
-    if padding < 0 do
-      raise ArgumentError, "#{byte_count} bytes cannot hold a #{bits} bit prefix"
-    end
-
-    <<value::unsigned-big-integer-size(bits), 0::size(padding)>>
-  end
-
   defimpl String.Chars do
-    def to_string(%RecaptchaPasswordCheck.BitPrefix{bits: 0}), do: "Empty prefix"
+    def to_string(%RecaptchaPasswordCheck.CryptoHelper.BitPrefix{bits: 0}), do: "Empty prefix"
 
-    def to_string(%RecaptchaPasswordCheck.BitPrefix{bits: bits, value: value}) do
+    def to_string(%RecaptchaPasswordCheck.CryptoHelper.BitPrefix{bits: bits, value: value}) do
       "0b" <> String.pad_leading(Integer.to_string(value, 2), bits, "0")
     end
   end

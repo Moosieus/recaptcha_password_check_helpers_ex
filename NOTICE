@@ -3,8 +3,8 @@ Copyright 2026 Net Health
 
 This product is a port to Elixir of the following works by Google LLC, licensed under the Apache License, Version 2.0:
 
-  - com.google.cloud:recaptcha-password-check-helpers (github.com/google/java-recaptcha-password-check-helpers)
-  - recaptcha-password-check-helpers (github.com/google/typescript-recaptcha-password-check-helpers)
+  - com.google.cloud:recaptcha-password-check-helpers (github.com/GoogleCloudPlatform/java-recaptcha-password-check-helpers)
+  - recaptcha-password-check-helpers (github.com/GoogleCloudPlatform/typescript-recaptcha-password-check-helpers)
 
 Portions of the protocol constants, the username canonicalization rules, and the elliptic curve commutative cipher construction are derived from those implementations. Test vectors under test/fixtures and the expected values in `test/recaptcha_password_check/{crypto_helper,bit_prefix}_test.exs` originate from Google's published test suites.
 

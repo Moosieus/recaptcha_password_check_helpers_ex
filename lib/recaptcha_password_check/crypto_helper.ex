@@ -1,8 +1,7 @@
 defmodule RecaptchaPasswordCheck.CryptoHelper do
   @moduledoc false
 
-  alias RecaptchaPasswordCheck.BitPrefix
-  alias RecaptchaPasswordCheck.Scrypt
+  alias RecaptchaPasswordCheck.CryptoHelper.BitPrefix
 
   # These salts are public: They exist only to force an attacker to build a rainbow table
   # specific to this protocol rather than reusing a generic one.
@@ -42,7 +41,7 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
   # the username and a constant.
   def hash_username_password_pair(canonical_username, password)
       when is_binary(canonical_username) and is_binary(password) do
-    Scrypt.derive(
+    :scrypt.scrypt(
       canonical_username <> password,
       canonical_username <> @password_salt,
       @scrypt_cost,

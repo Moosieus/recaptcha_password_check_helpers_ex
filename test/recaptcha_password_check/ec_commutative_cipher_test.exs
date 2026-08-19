@@ -2,7 +2,7 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipherTest do
   use ExUnit.Case, async: true
 
   alias RecaptchaPasswordCheck.EcCommutativeCipher, as: Cipher
-  alias RecaptchaPasswordCheck.P256
+  alias RecaptchaPasswordCheck.EcCommutativeCipher.P256
 
   describe "hash_into_the_curve/2" do
     test "produces a valid compressed point" do

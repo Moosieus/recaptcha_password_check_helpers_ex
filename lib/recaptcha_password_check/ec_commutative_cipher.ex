@@ -13,7 +13,7 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
 
   import Bitwise
 
-  alias RecaptchaPasswordCheck.P256
+  alias RecaptchaPasswordCheck.EcCommutativeCipher.P256
 
   @hash_bit_lengths %{sha256: 256, sha384: 384, sha512: 512}
 
