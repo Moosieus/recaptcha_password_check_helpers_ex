@@ -63,7 +63,7 @@ See [TESTING.md](TESTING.md).
 
 **macOS.** The scrypt NIF's Makefile assigns its Darwin link flags with `?=`, so an inherited `LDFLAGS` replaces rather than extends them and the NIF fails to link with undefined `_enif_*` symbols. If you export `LDFLAGS` globally (for example for `libpq`), either compile with `env -u LDFLAGS mix deps.compile scrypt` or append `-undefined dynamic_lookup` to your exported value.
 
-**Docker.** Builds cleanly on Debian bookworm for both amd64 and arm64; the `elixir:*-otp-27` images already carry `cc` and `make`. The dependency is rebar3-managed, so the build stage needs `mix local.rebar --force`, and `priv/scrypt.so` is produced at `mix deps.compile` time — a multi-stage build must carry the compiled artefact forward, not just `deps` source.
+**Native dependency.** scrypt is a NIF, so building needs a C compiler and `make`. The official `elixir:*` images carry both, and it builds on Debian for amd64 and arm64 alike.
 
 ## Attribution
 
