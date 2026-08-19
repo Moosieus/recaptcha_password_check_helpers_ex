@@ -16,15 +16,7 @@ RECAPTCHA_PROJECT_ID="..." \
 
 The only thing that can detect the protocol changing underneath us. Fixtures prove agreement with Google's *library*; the canary proves agreement with Google's *server*. Worth running on a schedule rather than on demand.
 
-A short-lived access token is preferred because it carries your own IAM permissions and sidesteps the application and API restrictions that make keys fail with a bare `API key not valid` naming no cause. An API key works too, and takes precedence to nothing — the token wins when both are set:
-
-```sh
-RECAPTCHA_PROJECT_ID="..." GOOGLE_CLOUD_API_KEY="AIza..." mix test --only integration
-```
-
-Both credentials are trimmed before use. One pasted from a shell or read out of a file routinely carries a trailing newline, and Google rejects that as an invalid key without explaining why.
-
-The project also needs the reCAPTCHA Enterprise API enabled and the **Premium** tier. Password defense is not part of Essentials, and its absence shows up as a failed assessment rather than an authentication error, so it is easy to mistake for a credentials problem.
+The project also needs the reCAPTCHA Enterprise API enabled and password defense available on its tier.
 
 ### Refresh parity vectors from `GoogleCloudPlatform/java-recaptcha-password-check-helpers`
 ```sh

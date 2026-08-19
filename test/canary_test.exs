@@ -9,16 +9,11 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
   changes, the credential below stops being reported as leaked. Worth running on a schedule, not
   just on demand.
 
-  Authenticate with a short-lived access token, which avoids creating and restricting an API key:
+  Authenticate with a short-lived access token, which the gcloud CLI hands over directly:
 
       RECAPTCHA_PROJECT_ID=my-project \\
         GOOGLE_CLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token) \\
         mix test --only integration
-
-  Or with an API key, which must belong to the same project and either be unrestricted or scoped
-  to the reCAPTCHA Enterprise API:
-
-      RECAPTCHA_PROJECT_ID=my-project GOOGLE_CLOUD_API_KEY=AIza... mix test --only integration
 
   Each run bills one assessment against the project, and password defense requires the Premium
   tier.
@@ -70,25 +65,16 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
     refute assess(verification, context)
   end
 
-  # A bearer token wins when both are set: it is short-lived, carries the caller's own IAM
-  # permissions, and sidesteps the application and API restrictions that make keys fail in ways
-  # the error message does not explain.
+  # A token carries the caller's own IAM permissions, so there is no key to create, restrict, or
+  # store, and nothing long-lived ends up in a shell history.
   defp auth_headers do
-    with :missing <- bearer(System.get_env("GOOGLE_CLOUD_ACCESS_TOKEN")) do
-      api_key(System.get_env("GOOGLE_CLOUD_API_KEY"))
+    with {:ok, token} <- present(System.get_env("GOOGLE_CLOUD_ACCESS_TOKEN")) do
+      {:ok, [{"authorization", "Bearer " <> token}]}
     end
   end
 
-  defp bearer(token) do
-    with {:ok, token} <- present(token), do: {:ok, [{"authorization", "Bearer " <> token}]}
-  end
-
-  defp api_key(key) do
-    with {:ok, key} <- present(key), do: {:ok, [{"x-goog-api-key", key}]}
-  end
-
   # Trimming matters: a credential pasted into a shell or read from a file routinely carries a
-  # trailing newline, and Google rejects that as an invalid key rather than saying why.
+  # trailing newline, and Google rejects that without explaining why.
   defp present(value) when is_binary(value) do
     case String.trim(value) do
       "" -> :missing
@@ -131,8 +117,7 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
 
   defp usage do
     """
-    The canary needs RECAPTCHA_PROJECT_ID, plus one of GOOGLE_CLOUD_ACCESS_TOKEN (preferred) or
-    GOOGLE_CLOUD_API_KEY:
+    The canary needs RECAPTCHA_PROJECT_ID and GOOGLE_CLOUD_ACCESS_TOKEN:
 
         RECAPTCHA_PROJECT_ID=my-project \\
           GOOGLE_CLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token) \\

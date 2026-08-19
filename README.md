@@ -51,7 +51,7 @@ if response.status == 200 do
 end
 ```
 
-Get the bearer token above from `goth`, or send an API key instead — though a key brings application and API restrictions that fail with an opaque `API key not valid`.
+Get the token from `goth` in an application, or from `gcloud auth print-access-token` when trying this out by hand.
 
 <!-- MDOC !-->
 
