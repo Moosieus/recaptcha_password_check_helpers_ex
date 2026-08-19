@@ -7,9 +7,8 @@ defmodule RecaptchaPasswordCheck.CryptoHelperTest do
 
   defp hex(binary), do: Base.encode16(binary, case: :lower)
 
-  # Expected values copied from Google's published test suites, which are ports
-  # of google3 CryptoHelperTest.java. A mismatch here means this implementation
-  # would query the wrong bucket or compare the wrong hash, and every credential
+  # Expected values copied from Google's CryptoHelperTest.java. A mismatch here means this
+  # implementation would query the wrong bucket or compare the wrong hash, and every credential
   # would silently come back clean.
   describe "hash_username/1" do
     test "matches the reference digest" do

@@ -13,7 +13,8 @@ defmodule RecaptchaPasswordCheck.CryptoHelper.BitPrefix do
 
   Raises when `binary` holds fewer than `bits` bits.
 
-      iex> RecaptchaPasswordCheck.CryptoHelper.BitPrefix.of(<<0xCE, 0x8C, 0x59, 0xDF>>, 26) |> RecaptchaPasswordCheck.CryptoHelper.BitPrefix.to_binary()
+      iex> alias RecaptchaPasswordCheck.CryptoHelper.BitPrefix
+      iex> BitPrefix.of(<<0xCE, 0x8C, 0x59, 0xDF>>, 26) |> BitPrefix.to_binary()
       <<0xCE, 0x8C, 0x59, 0xC0>>
   """
   def of(binary, bits) when is_binary(binary) and is_integer(bits) and bits >= 0 do

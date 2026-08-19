@@ -5,8 +5,7 @@ defmodule RecaptchaPasswordCheck.CryptoHelper.BitPrefixTest do
 
   doctest RecaptchaPasswordCheck.CryptoHelper.BitPrefix
 
-  # Expected values copied from Google's published test suites, which are
-  # themselves ports of google3 BitPrefixTest.java.
+  # Expected values copied from Google's BitPrefixTest.java.
   describe "of/2" do
     test "handles multiple bytes" do
       prefix = BitPrefix.of(<<0b11111111, 0b01010101>>, 9)
