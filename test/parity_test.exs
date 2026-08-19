@@ -3,7 +3,6 @@ defmodule RecaptchaPasswordCheck.ParityTest do
 
   alias RecaptchaPasswordCheck.CryptoHelper
   alias RecaptchaPasswordCheck.EcCommutativeCipher, as: Cipher
-  alias RecaptchaPasswordCheck.Verification
 
   @moduledoc """
   Byte-for-byte comparison against Google's Java implementation.
@@ -38,7 +37,7 @@ defmodule RecaptchaPasswordCheck.ParityTest do
 
     test "canonicalization matches", %{vectors: vectors} do
       for vector <- vectors do
-        assert Verification.canonicalize_username(vector["username"]) ==
+        assert RecaptchaPasswordCheck.canonicalize_username(vector["username"]) ==
                  vector["canonicalized_username"],
                "canonicalization diverged for #{inspect(vector["username"])}"
       end
@@ -130,7 +129,7 @@ defmodule RecaptchaPasswordCheck.ParityTest do
       # form straight from the fixture.
       for vector <- vectors, vector["canonicalized_username"] != "" do
         {:ok, verification} =
-          RecaptchaPasswordCheck.create_verification(vector["username"], vector["password"])
+          RecaptchaPasswordCheck.create(vector["username"], vector["password"])
 
         server_key = key(vector["server_private_key_hex"])
         reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
@@ -154,12 +153,12 @@ defmodule RecaptchaPasswordCheck.ParityTest do
       # form straight from the fixture.
       for vector <- vectors, vector["canonicalized_username"] != "" do
         {:ok, verification} =
-          RecaptchaPasswordCheck.create_verification(vector["username"], vector["password"])
+          RecaptchaPasswordCheck.create(vector["username"], vector["password"])
 
         server_key = key(vector["server_private_key_hex"])
         reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
-        assert Verification.leaked?(verification, reencrypted, [
+        assert RecaptchaPasswordCheck.leaked?(verification, reencrypted, [
                  unhex(vector["server_match_prefix_hex"])
                ]),
                "leaked?/3 missed a known match for #{inspect(vector["username"])}"
@@ -172,12 +171,12 @@ defmodule RecaptchaPasswordCheck.ParityTest do
       # form straight from the fixture.
       for vector <- vectors, vector["canonicalized_username"] != "" do
         {:ok, verification} =
-          RecaptchaPasswordCheck.create_verification(vector["username"], vector["password"])
+          RecaptchaPasswordCheck.create(vector["username"], vector["password"])
 
         server_key = key(vector["server_private_key_hex"])
         reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
-        refute Verification.leaked?(verification, reencrypted, [
+        refute RecaptchaPasswordCheck.leaked?(verification, reencrypted, [
                  binary_part(:crypto.hash(:sha256, "unrelated"), 0, 20)
                ])
       end

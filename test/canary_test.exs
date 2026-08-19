@@ -42,7 +42,7 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
 
   test "the reference leaked credential is still reported as leaked", context do
     {:ok, verification} =
-      RecaptchaPasswordCheck.create_verification("leakedusername", "leakedpassword")
+      RecaptchaPasswordCheck.create("leakedusername", "leakedpassword")
 
     assert assess(verification, context)
   end
@@ -56,7 +56,7 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
   # https://www.youtube.com/watch?v=gYs9nS8LlZ8
   test "a real-world publicly leaked credential is reported as leaked", context do
     {:ok, verification} =
-      RecaptchaPasswordCheck.create_verification("GabeN@valvesoftware.com", "MoolyFTW")
+      RecaptchaPasswordCheck.create("GabeN@valvesoftware.com", "MoolyFTW")
 
     assert assess(verification, context)
   end
@@ -65,7 +65,7 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
     password = 24 |> :crypto.strong_rand_bytes() |> Base.encode64()
 
     {:ok, verification} =
-      RecaptchaPasswordCheck.create_verification("my-test-username", password)
+      RecaptchaPasswordCheck.create("my-test-username", password)
 
     refute assess(verification, context)
   end
