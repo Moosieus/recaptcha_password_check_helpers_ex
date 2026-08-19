@@ -1,54 +1,34 @@
 defmodule RecaptchaPasswordCheck do
   @moduledoc """
-  Client-side cryptography for reCAPTCHA's private password leak check.
-
-  The service answers whether a username and password pair appears in a breach corpus without
-  ever learning the credentials. This package does the client half of that exchange; sending the
-  request is left to the caller.
-
-  ## Usage
-
-      verification = RecaptchaPasswordCheck.create_verification("user@example.com", "hunter2")
-
-      # POST to projects.assessments.create with, base64-encoded:
-      #   privatePasswordLeakVerification.lookupHashPrefix
-      #     -> verification.lookup_hash_prefix
-      #   privatePasswordLeakVerification.encryptedUserCredentialsHash
-      #     -> verification.encrypted_user_credentials_hash
-
-      result =
-        RecaptchaPasswordCheck.verify(
-          verification,
-          response.reencrypted_user_credentials_hash,
-          response.encrypted_leak_match_prefixes
-        )
-
-      result.leaked?
+  Client-side cryptography and canonicalization for Google Cloud Fraud Defense's private password leak check.
   """
 
-  alias RecaptchaPasswordCheck.CryptoHelper
   alias RecaptchaPasswordCheck.Verification
 
   @doc """
-  Builds a verification for a username and password.
+  Builds a `RecaptchaPasswordCheck.Verification` struct for a username and password.
 
   Runs scrypt and an elliptic curve multiplication, so expect low tens of milliseconds.
+
+  > #### Google Cloud Fraud Defense uses canonicalized usernames. {: .warning}
+  >
+  > 1. Everything after the first `@` is trimmed.
+  > 2. `.`'s are removed.
+  > 3. Every ascii character is downcased.
+  >
+  > For example: `J.Doe@gmail.com` and `jdoe@hotmail.com` both equate to `jdoe` for leak checks.
+
+  Returns `{:ok, verification}`, or `{:error, :empty_canonical_username}` when canonicalization
+  consumes the username entirely — `"@example.com"` reduces to nothing, and a query on an empty
+  username would match on the password alone.
+
+  Raises when either credential is empty or not a binary, which is a caller error rather than a
+  property of the input.
   """
   defdelegate create_verification(username, password), to: Verification, as: :create
 
   @doc """
-  Interprets the service's response against the verification that produced it.
-
-  Returns a `RecaptchaPasswordCheck.Result`.
+  Whether the service reported the credentials behind `verification` as leaked.
   """
-  defdelegate verify(verification, reencrypted_hash, match_prefixes), to: Verification
-
-  @doc """
-  Canonicalizes a username the way the protocol does.
-
-  Exposed because the transformation is lossy in a way worth being aware of: the email host is
-  discarded, so `alice@example.com` and `alice@other.test` collide. A reported leak means the
-  local part and password appeared together, not that this exact account was breached.
-  """
-  defdelegate canonicalize_username(username), to: CryptoHelper
+  defdelegate leaked?(verification, reencrypted_hash, match_prefixes), to: Verification
 end

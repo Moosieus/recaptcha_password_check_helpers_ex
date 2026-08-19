@@ -1,14 +1,13 @@
 defmodule RecaptchaPasswordCheck.P256 do
-  @moduledoc """
-  Arithmetic on the NIST P-256 (secp256r1) curve `y² = x³ + ax + b mod p`.
-
-  > #### Timing {: .warning}
-  >
-  > Scalar multiplication uses a Montgomery ladder, so the sequence of group operations does not
-  > depend on the scalar's bits. It is *not* constant time in the strict sense: the BEAM's bignum
-  > arithmetic is itself variable time. See the README for the threat model this is acceptable
-  > under.
-  """
+  @moduledoc false
+  # Arithmetic on the NIST P-256 (secp256r1) curve `y² = x³ + ax + b mod p`.
+  #
+  # Timing
+  #
+  # Scalar multiplication uses a Montgomery ladder, so the sequence of group operations does not
+  # depend on the scalar's bits. It is *not* constant time in the strict sense: the BEAM's bignum
+  # arithmetic is itself variable time. See the README for the threat model this is acceptable
+  # under.
 
   # Parameters come from OTP's own curve table rather than being transcribed, so there is no
   # hand-typed constant to get wrong. Read at compile time so they stay usable in guards.

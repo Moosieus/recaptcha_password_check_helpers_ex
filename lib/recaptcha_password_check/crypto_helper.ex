@@ -1,15 +1,11 @@
 defmodule RecaptchaPasswordCheck.CryptoHelper do
-  @moduledoc """
-  Username canonicalization and the two credential hashes the protocol sends.
-
-  Both hashes mix in a constant salt taken from the reference implementation.
-
-  **These salts are public:** They exist only to force an attacker to build a rainbow table
-  specific to this protocol rather than reusing a generic one.
-  """
+  @moduledoc false
 
   alias RecaptchaPasswordCheck.BitPrefix
   alias RecaptchaPasswordCheck.Scrypt
+
+  # These salts are public: They exist only to force an attacker to build a rainbow table
+  # specific to this protocol rather than reusing a generic one.
 
   @username_salt <<0xC4, 0x94, 0xA3, 0x95, 0xF8, 0xC0, 0xE2, 0x3E, 0xA9, 0x23, 0x04, 0x78, 0x70,
                    0x2C, 0x72, 0x18, 0x56, 0x54, 0x99, 0xB3, 0xE9, 0x21, 0x18, 0x6C, 0x21, 0x1A,
@@ -26,43 +22,24 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
 
   @username_hash_prefix_bits 26
 
-  @doc "Bits of the username hash sent to the service as a bucket identifier."
+  @doc false
   def username_hash_prefix_bits, do: @username_hash_prefix_bits
 
-  @doc """
-  Canonicalizes a username.
-
-  Drops everything from the first `@` onward, deletes every `.`, and lowercases ASCII letters
-  only. Non-ASCII characters are left alone, so `Ä` does not become `ä` — the reference
-  implementation folds case over ASCII exclusively and this must match it byte for byte.
-
-      iex> RecaptchaPasswordCheck.CryptoHelper.canonicalize_username("Test.Name@Example.com")
-      "testname"
-  """
-  def canonicalize_username(username) when is_binary(username) do
-    username
-    |> strip_host()
-    |> String.replace(".", "")
-    |> ascii_downcase()
-  end
-
-  @doc """
-  Hashes a canonicalized username.
-
-  Deliberately fast: only a 26-bit prefix ever leaves the client, so this hash does not need to
-  resist offline attack.
-  """
+  @doc false
+  # Hashes a canonicalized username.
+  #
+  # Deliberately fast: only a 26-bit prefix ever leaves the client, so this hash does not need to
+  # resist offline attack.
   def hash_username(canonical_username) when is_binary(canonical_username) do
     :crypto.hash(:sha256, canonical_username <> @username_salt)
   end
 
-  @doc """
-  Hashes a canonicalized username and password together with scrypt.
-
-  Expensive by design — this value is the secret the protocol protects. Runs
-  scrypt with `N=4096, r=8, p=1` over the concatenated credentials, salted with
-  the username and a constant.
-  """
+  @doc false
+  # Hashes a canonicalized username and password together with scrypt.
+  #
+  # Expensive by design — this value is the secret the protocol protects. Runs
+  # scrypt with `N=4096, r=8, p=1` over the concatenated credentials, salted with
+  # the username and a constant.
   def hash_username_password_pair(canonical_username, password)
       when is_binary(canonical_username) and is_binary(password) do
     Scrypt.derive(
@@ -89,25 +66,10 @@ defmodule RecaptchaPasswordCheck.CryptoHelper do
     |> BitPrefix.to_binary()
   end
 
-  @doc """
-  Re-hashes an encrypted credentials hash, which the service also does to every leak it returns,
-  so both sides compare uniformly distributed values.
-  """
+  @doc false
+  # Re-hashes an encrypted credentials hash, which the service also does to every leak it returns,
+  # so both sides compare uniformly distributed values.
   def hash_blinded_hash(blinded_hash) when is_binary(blinded_hash) do
     :crypto.hash(:sha256, blinded_hash)
   end
-
-  defp strip_host(username) do
-    case :binary.match(username, "@") do
-      {index, _length} -> :binary.part(username, 0, index)
-      :nomatch -> username
-    end
-  end
-
-  defp ascii_downcase(binary) do
-    for <<byte <- binary>>, into: "", do: <<downcase_byte(byte)>>
-  end
-
-  defp downcase_byte(byte) when byte in ?A..?Z, do: byte + 32
-  defp downcase_byte(byte), do: byte
 end

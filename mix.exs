@@ -49,7 +49,7 @@ defmodule RecaptchaPasswordCheckHelpersEx.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"],
+      extras: ["README.md", "TESTING.md"],
       source_ref: "v#{@version}",
       groups_for_modules: [
         Cryptography: [

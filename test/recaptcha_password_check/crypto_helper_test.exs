@@ -25,44 +25,6 @@ defmodule RecaptchaPasswordCheck.CryptoHelperTest do
     end
   end
 
-  describe "canonicalize_username/1" do
-    test "leaves lowercase ASCII alone" do
-      assert CryptoHelper.canonicalize_username("test") == "test"
-    end
-
-    test "lowercases ASCII" do
-      assert CryptoHelper.canonicalize_username("Test") == "test"
-    end
-
-    test "strips dots" do
-      assert CryptoHelper.canonicalize_username("test.test") == "testtest"
-    end
-
-    test "strips an email host" do
-      assert CryptoHelper.canonicalize_username("test@example.com") == "test"
-    end
-
-    test "strips the host before stripping dots" do
-      assert CryptoHelper.canonicalize_username("test.name@ex.com") == "testname"
-    end
-
-    test "does not case-fold non-ASCII characters" do
-      assert CryptoHelper.canonicalize_username("äöü日本語العَرَبِيَّة") == "äöü日本語العَرَبِيَّة"
-    end
-
-    test "strips an internationalized host" do
-      assert CryptoHelper.canonicalize_username("例え@例え.テスト") == "例え"
-    end
-
-    test "keeps only the part before the first @" do
-      assert CryptoHelper.canonicalize_username("a@b@c") == "a"
-    end
-
-    test "yields an empty username when the local part is empty" do
-      assert CryptoHelper.canonicalize_username("@nolocalpart") == ""
-    end
-  end
-
   describe "bucketize_username/2" do
     test "matches the reference bucket for the canary credential" do
       assert CryptoHelper.bucketize_username("leakedusername") == <<0xCE, 0x8C, 0x59, 0xC0>>

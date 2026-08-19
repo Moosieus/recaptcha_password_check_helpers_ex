@@ -14,10 +14,12 @@ end
 ## Example Usage
 
 ```elixir
-api_key = "my_super_secret_api_key"
 project = "my_super_cool_gcp_project"
+token = "my_super_secret_bearer_token"
 
-verification = RecaptchaPasswordCheck.create_verification("user@example.com", "hunter2")
+# https://www.youtube.com/watch?v=gYs9nS8LlZ8
+{:ok, verification} =
+  RecaptchaPasswordCheck.create_verification("GabeN@valvesoftware.com", "MoolyFTW")
 
 %{
   lookup_hash_prefix: lookup_hash_prefix,
@@ -34,40 +36,37 @@ body = %{
 response =
   Req.post!("https://recaptchaenterprise.googleapis.com/v1/projects/#{project}/assessments",
     json: body,
-    headers: [{"x-goog-api-key", api_key}],
+    headers: [{"authorization", "Bearer " <> token}],
     receive_timeout: 5_000
   )
 
 leak = response.body["privatePasswordLeakVerification"]
 
-result =
-  RecaptchaPasswordCheck.verify(
-    verification,
-    Base.decode64!(leak["reencryptedUserCredentialsHash"]),
-    Enum.map(leak["encryptedLeakMatchPrefixes"], &Base.decode64!/1)
-  )
+%{
+  "privatePasswordLeakVerification" => %{
+    "reencryptedUserCredentialsHash" => reencrypted_user_credentials_hash,
+    "encryptedLeakMatchPrefixes" => encrypted_leak_match_prefixes
+  }
+} = response.body
 
-result.leaked?
+reencrypted_user_credentials_hash = Base.decode64!(reencrypted_user_credentials_hash)
+encrypted_leak_match_prefixes = Enum.map(encrypted_leak_match_prefixes, &Base.decode64!/1)
+
+# was the canonicalized-username and password combination leaked?
+RecaptchaPasswordCheck.leaked?(
+  verification,
+  reencrypted_user_credentials_hash,
+  encrypted_leak_match_prefixes
+)
 ```
 
-Hold on to the `verification` struct across the round trip — it carries the ephemeral key that decrypts the reply. Google recommends budgeting around 500ms for the exchange.
-
-This library deliberately stops at the cryptography, mirroring Google's own helpers: no HTTP, no authentication, no assessment payload. Authenticate with an API key as above, or with `goth` and a bearer token.
+Get the bearer token above from `goth`, or send an API key instead — though a key brings application and API restrictions that fail with an opaque `API key not valid`.
 
 Password defense requires the **Premium** tier. Assessments are free up to 10,000 per calendar month per organization, then $8 flat to 100,000.
 
-## What the verdict does and does not mean
+## Testing
 
-`leaked?` is the entire answer. There is no breach name, date, or count — the protocol cannot carry them.
-
-Matching is looser than it looks. Canonicalization discards the email host, so `alice@example.com` and `alice@other.test` collide:
-
-```elixir
-RecaptchaPasswordCheck.canonicalize_username("Alice.Smith@example.com")
-#=> "alicesmith"
-```
-
-A reported leak therefore means *this local part and password appeared together somewhere*, which catches cross-site password reuse but is not proof that this particular account was breached. Worth knowing before wiring it to a forced reset.
+See [TESTING.md](TESTING.md).
 
 ## Build notes
 

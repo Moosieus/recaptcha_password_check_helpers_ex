@@ -1,13 +1,29 @@
 defmodule RecaptchaPasswordCheck.Verification do
   @moduledoc """
-  A single password check attempt.
+  A single password check attempt, carrying everything needed to make one request and read its reply.
   """
 
   alias RecaptchaPasswordCheck.CryptoHelper
   alias RecaptchaPasswordCheck.EcCommutativeCipher
-  alias RecaptchaPasswordCheck.Result
 
-  @enforce_keys [
+  @doc """
+  Defines the RecaptchaPasswordCheck.Verification struct.
+
+  Its fields are:
+
+    * `:username` - the username as it was supplied.
+    * `:canonical_username` - that username after canonicalization, which is what every hash here
+      derives from.
+    * `:lookup_hash_prefix` - four bytes holding the leading 26 bits of the canonical username's
+      hash, zero-filled. It names the bucket of leaks the service searches, and is the only thing
+      the service learns about the username.
+    * `:encrypted_user_credentials_hash` - the scrypt hash of the canonical username and password,
+      blinded by multiplication on P-256 and encoded as a 33-byte compressed point. The service
+      re-encrypts it under its own key without being able to read it.
+    * `:private_key` - the ephemeral scalar used for that blinding, and the only means of removing
+      it from the reply. Never reused, never transmitted, and redacted when the struct is inspected.
+  """
+  defstruct [
     :username,
     :canonical_username,
     :lookup_hash_prefix,
@@ -15,20 +31,18 @@ defmodule RecaptchaPasswordCheck.Verification do
     :private_key
   ]
 
-  defstruct @enforce_keys
-
   defguardp is_str(str) when is_binary(str) and byte_size(str) > 0
 
-  @doc """
-  Builds a verification for `username` and `password`.
-
-  Generates a fresh private key on every call, and offers no way to supply one. The encryption is
-  deterministic, so a reused key would make two verifications of the same credentials linkable.
-  """
+  @doc false
   def create(username, password) when is_str(username) and is_str(password) do
-    canonical_username = CryptoHelper.canonicalize_username(username)
-    private_key = EcCommutativeCipher.new_key()
+    case canonicalize_username(username) do
+      canonical when canonical != "" -> {:ok, build(username, canonical, password)}
+      "" -> {:error, :empty_canonical_username}
+    end
+  end
 
+  defp build(username, canonical_username, password) do
+    private_key = EcCommutativeCipher.new_key()
     credentials_hash = CryptoHelper.hash_username_password_pair(canonical_username, password)
 
     %__MODULE__{
@@ -40,29 +54,42 @@ defmodule RecaptchaPasswordCheck.Verification do
     }
   end
 
-  @doc """
-  Interprets a service response.
-
-  Strips this verification's encryption layer from `reencrypted_hash`, re-hashes the result the
-  way the service hashes every leak it stores, and reports whether any entry in `match_prefixes`
-  prefixes that value.
-  """
-  def verify(%__MODULE__{} = verification, reencrypted_hash, [])
-      when is_str(reencrypted_hash) do
-    %Result{username: verification.username, leaked?: false}
+  @doc false
+  # Applies reCAPTCHA's canonicalization rules, matching the reference implementation byte for byte.
+  def canonicalize_username(username) when is_binary(username) do
+    username
+    |> strip_host()
+    |> String.replace(".", "")
+    |> ascii_downcase()
   end
 
-  def verify(%__MODULE__{} = verification, reencrypted_hash, [_ | _] = match_prefixes)
+  defp strip_host(username) do
+    case :binary.match(username, "@") do
+      {index, _length} -> :binary.part(username, 0, index)
+      :nomatch -> username
+    end
+  end
+
+  defp ascii_downcase(binary) do
+    for <<byte <- binary>>, into: "", do: <<downcase_byte(byte)>>
+  end
+
+  defp downcase_byte(byte) when byte in ?A..?Z, do: byte + 32
+  defp downcase_byte(byte), do: byte
+
+  @doc false
+  def leaked?(%__MODULE__{} = verification, reencrypted_hash, [_ | _] = match_prefixes)
       when is_str(reencrypted_hash) do
     rehashed =
       verification.private_key
       |> EcCommutativeCipher.decrypt(reencrypted_hash)
       |> CryptoHelper.hash_blinded_hash()
 
-    %Result{
-      username: verification.username,
-      leaked?: Enum.any?(match_prefixes, &prefix_match?(rehashed, &1))
-    }
+    Enum.any?(match_prefixes, &prefix_match?(rehashed, &1))
+  end
+
+  def leaked?(%__MODULE__{}, reencrypted_hash, []) when is_str(reencrypted_hash) do
+    false
   end
 
   defp prefix_match?(rehashed, prefix)

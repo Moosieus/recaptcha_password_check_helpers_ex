@@ -38,7 +38,7 @@ defmodule RecaptchaPasswordCheck.ParityTest do
 
     test "canonicalization matches", %{vectors: vectors} do
       for vector <- vectors do
-        assert CryptoHelper.canonicalize_username(vector["username"]) ==
+        assert Verification.canonicalize_username(vector["username"]) ==
                  vector["canonicalized_username"],
                "canonicalization diverged for #{inspect(vector["username"])}"
       end
@@ -125,8 +125,13 @@ defmodule RecaptchaPasswordCheck.ParityTest do
     # generated inside `create/2` still has to land on Java's post-decryption value. That covers
     # the composed payload end to end without the public API accepting a key.
     test "a freshly keyed verification reproduces Java's decrypted value", %{vectors: vectors} do
-      for vector <- vectors do
-        verification = Verification.create(vector["username"], vector["password"])
+      # The facade refuses a username that canonicalizes to nothing, so that vector cannot travel
+      # this path. Its hashes stay covered by the stage-level tests above, which read the canonical
+      # form straight from the fixture.
+      for vector <- vectors, vector["canonicalized_username"] != "" do
+        {:ok, verification} =
+          RecaptchaPasswordCheck.create_verification(vector["username"], vector["password"])
+
         server_key = key(vector["server_private_key_hex"])
         reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
@@ -144,32 +149,37 @@ defmodule RecaptchaPasswordCheck.ParityTest do
     end
 
     test "a Java-produced match prefix is read as leaked", %{vectors: vectors} do
-      for vector <- vectors do
-        verification = Verification.create(vector["username"], vector["password"])
+      # The facade refuses a username that canonicalizes to nothing, so that vector cannot travel
+      # this path. Its hashes stay covered by the stage-level tests above, which read the canonical
+      # form straight from the fixture.
+      for vector <- vectors, vector["canonicalized_username"] != "" do
+        {:ok, verification} =
+          RecaptchaPasswordCheck.create_verification(vector["username"], vector["password"])
+
         server_key = key(vector["server_private_key_hex"])
         reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
-        result =
-          Verification.verify(verification, reencrypted, [
-            unhex(vector["server_match_prefix_hex"])
-          ])
-
-        assert result.leaked?, "verify/3 missed a known match for #{inspect(vector["username"])}"
+        assert Verification.leaked?(verification, reencrypted, [
+                 unhex(vector["server_match_prefix_hex"])
+               ]),
+               "leaked?/3 missed a known match for #{inspect(vector["username"])}"
       end
     end
 
     test "an unrelated match prefix is not read as leaked", %{vectors: vectors} do
-      for vector <- vectors do
-        verification = Verification.create(vector["username"], vector["password"])
+      # The facade refuses a username that canonicalizes to nothing, so that vector cannot travel
+      # this path. Its hashes stay covered by the stage-level tests above, which read the canonical
+      # form straight from the fixture.
+      for vector <- vectors, vector["canonicalized_username"] != "" do
+        {:ok, verification} =
+          RecaptchaPasswordCheck.create_verification(vector["username"], vector["password"])
+
         server_key = key(vector["server_private_key_hex"])
         reencrypted = Cipher.re_encrypt(server_key, verification.encrypted_user_credentials_hash)
 
-        result =
-          Verification.verify(verification, reencrypted, [
-            binary_part(:crypto.hash(:sha256, "unrelated"), 0, 20)
-          ])
-
-        refute result.leaked?
+        refute Verification.leaked?(verification, reencrypted, [
+                 binary_part(:crypto.hash(:sha256, "unrelated"), 0, 20)
+               ])
       end
     end
   else

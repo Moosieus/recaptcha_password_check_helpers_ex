@@ -1,16 +1,15 @@
 defmodule RecaptchaPasswordCheck.EcCommutativeCipher do
-  @moduledoc """
-  Commutative encryption over P-256, where `K₁(K₂(m)) == K₂(K₁(m))`.
-
-  Two parties use this to learn whether they hold the same value without either revealing it.
-  Encryption hashes the message onto the curve and multiplies by a private scalar; because scalar
-  multiplication commutes, the server can re-encrypt a client ciphertext and the client can strip
-  its own layer back off.
-
-  See ["Using Commutative Encryption to Share a Secret"](https://eprint.iacr.org/2008/356.pdf).
-
-  Ciphertexts are compressed curve points, 33 bytes each.
-  """
+  @moduledoc false
+  # Commutative encryption over P-256, where `K₁(K₂(m)) == K₂(K₁(m))`.
+  #
+  # Two parties use this to learn whether they hold the same value without either revealing it.
+  # Encryption hashes the message onto the curve and multiplies by a private scalar; because scalar
+  # multiplication commutes, the server can re-encrypt a client ciphertext and the client can strip
+  # its own layer back off.
+  #
+  # See ["Using Commutative Encryption to Share a Secret"](https://eprint.iacr.org/2008/356.pdf).
+  #
+  # Ciphertexts are compressed curve points, 33 bytes each.
 
   import Bitwise
 

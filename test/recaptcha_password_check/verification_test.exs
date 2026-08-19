@@ -27,7 +27,7 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
       prefixes =
         Enum.map(leaked_credentials, fn {username, password} ->
           username
-          |> CryptoHelper.canonicalize_username()
+          |> Verification.canonicalize_username()
           |> CryptoHelper.hash_username_password_pair(password)
           |> then(&Cipher.encrypt(server_key, &1))
           |> CryptoHelper.hash_blinded_hash()
@@ -38,25 +38,38 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
     end
   end
 
+  defp create!(username, password) do
+    {:ok, verification} = Verification.create(username, password)
+
+    verification
+  end
+
   describe "create/3" do
     test "populates both request fields" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
 
       assert byte_size(verification.lookup_hash_prefix) == 4
       assert byte_size(verification.encrypted_user_credentials_hash) == 33
       assert verification.username == "foo"
     end
 
-    test "keeps the original username but canonicalizes for hashing" do
-      verification = Verification.create("Foo.Bar@example.com", "pw")
+    # Both forms are retained: the address as entered, and the one everything is hashed from.
+    test "keeps the username as entered and canonicalizes for hashing" do
+      verification = create!("Foo.Bar@example.com", "pw")
 
       assert verification.username == "Foo.Bar@example.com"
       assert verification.canonical_username == "foobar"
+
+      assert verification.lookup_hash_prefix == CryptoHelper.bucketize_username("foobar")
+    end
+
+    test "reports a username that canonicalizes to nothing" do
+      assert Verification.create("@nolocalpart", "pw") == {:error, :empty_canonical_username}
     end
 
     test "generates a distinct key per verification" do
-      refute Verification.create("foo", "bar").private_key ==
-               Verification.create("foo", "bar").private_key
+      refute create!("foo", "bar").private_key ==
+               create!("foo", "bar").private_key
     end
 
     test "rejects an empty username" do
@@ -68,87 +81,134 @@ defmodule RecaptchaPasswordCheck.VerificationTest do
     end
 
     test "redacts the private key when inspected" do
-      inspected = inspect(Verification.create("foo", "bar"))
+      inspected = inspect(create!("foo", "bar"))
 
       assert inspected =~ "[REDACTED]"
-      refute inspected =~ to_string(Verification.create("foo", "bar").private_key)
+      refute inspected =~ to_string(create!("foo", "bar").private_key)
     end
   end
 
-  describe "verify/3" do
+  describe "leaked?/3" do
     test "reports a leak when the bucket contains the credentials" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
 
       {reencrypted, prefixes} =
         FakeService.respond(verification, [{"foo", "bar"}, {"baz", "pass"}])
 
-      assert Verification.verify(verification, reencrypted, prefixes).leaked?
+      assert Verification.leaked?(verification, reencrypted, prefixes)
     end
 
     test "reports no leak when the password differs" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
 
       {reencrypted, prefixes} =
         FakeService.respond(verification, [{"foo", "diff_password"}, {"baz", "pass"}])
 
-      refute Verification.verify(verification, reencrypted, prefixes).leaked?
+      refute Verification.leaked?(verification, reencrypted, prefixes)
     end
 
     test "reports no leak for an empty bucket" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
       {reencrypted, []} = FakeService.respond(verification, [])
 
-      refute Verification.verify(verification, reencrypted, []).leaked?
+      refute Verification.leaked?(verification, reencrypted, [])
     end
 
     # Proof the short-circuit is live: an empty bucket is already the answer, so the reencrypted
     # hash is never decrypted and never has to be a valid point.
     test "an empty bucket answers without touching the reencrypted hash" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
 
-      refute Verification.verify(verification, "not a valid curve point", []).leaked?
-    end
-
-    test "returns the username alongside the verdict" do
-      verification = Verification.create("foo", "bar")
-      {reencrypted, prefixes} = FakeService.respond(verification, [{"foo", "bar"}])
-
-      assert Verification.verify(verification, reencrypted, prefixes).username == "foo"
+      refute Verification.leaked?(verification, "not a valid curve point", [])
     end
 
     test "ignores empty prefixes" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
       {reencrypted, _} = FakeService.respond(verification, [])
 
-      refute Verification.verify(verification, reencrypted, [""]).leaked?
+      refute Verification.leaked?(verification, reencrypted, [""])
     end
 
     test "ignores a prefix longer than the hash it would match against" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
       {reencrypted, _} = FakeService.respond(verification, [])
 
-      refute Verification.verify(verification, reencrypted, [:crypto.strong_rand_bytes(33)]).leaked?
+      refute Verification.leaked?(verification, reencrypted, [:crypto.strong_rand_bytes(33)])
     end
 
-    test "a canonicalizing username still matches the canonical leak entry" do
-      verification = Verification.create("Foo.Bar@example.com", "bar")
+    test "a raw address canonicalized by the facade matches the canonical leak entry" do
+      {:ok, verification} =
+        RecaptchaPasswordCheck.create_verification("Foo.Bar@example.com", "bar")
+
       {reencrypted, prefixes} = FakeService.respond(verification, [{"foobar", "bar"}])
 
-      assert Verification.verify(verification, reencrypted, prefixes).leaked?
+      assert Verification.leaked?(verification, reencrypted, prefixes)
     end
 
     test "another verification's key cannot read the response" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
       {reencrypted, prefixes} = FakeService.respond(verification, [{"foo", "bar"}])
-      other = Verification.create("foo", "bar")
+      other = create!("foo", "bar")
 
-      refute Verification.verify(other, reencrypted, prefixes).leaked?
+      refute Verification.leaked?(other, reencrypted, prefixes)
     end
 
     test "rejects an empty reencrypted hash" do
-      verification = Verification.create("foo", "bar")
+      verification = create!("foo", "bar")
 
-      assert_raise FunctionClauseError, fn -> Verification.verify(verification, "", [<<1>>]) end
+      assert_raise FunctionClauseError, fn -> Verification.leaked?(verification, "", [<<1>>]) end
+    end
+  end
+
+  describe "canonicalize_username/1" do
+    test "leaves lowercase ASCII alone" do
+      assert Verification.canonicalize_username("test") == "test"
+    end
+
+    test "lowercases ASCII" do
+      assert Verification.canonicalize_username("Test") == "test"
+    end
+
+    test "strips dots" do
+      assert Verification.canonicalize_username("test.test") == "testtest"
+    end
+
+    test "strips an email host" do
+      assert Verification.canonicalize_username("test@example.com") == "test"
+    end
+
+    test "strips the host before stripping dots" do
+      assert Verification.canonicalize_username("test.name@ex.com") == "testname"
+    end
+
+    test "does not case-fold non-ASCII characters" do
+      assert Verification.canonicalize_username("äöü日本語العَرَبِيَّة") == "äöü日本語العَرَبِيَّة"
+    end
+
+    # Mixed scripts in one username: the ASCII letters fold, the rest is left untouched. Using
+    # String.downcase/1 here instead of a byte-wise fold would silently diverge from the reference.
+    test "folds only the ASCII portion of a mixed username" do
+      assert Verification.canonicalize_username("Änna.Smith@example.com") == "Ännasmith"
+    end
+
+    test "strips an internationalized host" do
+      assert Verification.canonicalize_username("例え@例え.テスト") == "例え"
+    end
+
+    test "keeps only the part before the first @" do
+      assert Verification.canonicalize_username("a@b@c") == "a"
+    end
+
+    test "yields an empty username when the local part is empty" do
+      assert Verification.canonicalize_username("@nolocalpart") == ""
+    end
+
+    test "is idempotent" do
+      for username <- ["Foo.Bar@example.com", "a@b@c", "äöü", "@nolocalpart"] do
+        once = Verification.canonicalize_username(username)
+
+        assert Verification.canonicalize_username(once) == once
+      end
     end
   end
 end

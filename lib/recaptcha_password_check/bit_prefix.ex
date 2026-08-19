@@ -1,10 +1,9 @@
 defmodule RecaptchaPasswordCheck.BitPrefix do
-  @moduledoc """
-  A bit-level prefix of a binary, truncated from the most significant end.
-
-  The reCAPTCHA protocol identifies a leak bucket by the first 26 bits of a username hash, which
-  is not a byte boundary — hence a dedicated representation rather than `binary_part/3`.
-  """
+  @moduledoc false
+  # A bit-level prefix of a binary, truncated from the most significant end.
+  #
+  # The reCAPTCHA protocol identifies a leak bucket by the first 26 bits of a username hash, which
+  # is not a byte boundary — hence a dedicated representation rather than `binary_part/3`.
 
   @enforce_keys [:bits, :value]
   defstruct [:bits, :value]
