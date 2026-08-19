@@ -35,7 +35,7 @@ defmodule RecaptchaPasswordCheckHelpersEx.MixProject do
 
   defp description do
     "Client-side cryptography for reCAPTCHA's private password leak check, " <>
-      "a port of Google's recaptcha-password-check-helpers."
+      "a workalike of Google's recaptcha-password-check-helpers."
   end
 
   defp package do

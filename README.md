@@ -1,6 +1,6 @@
 # RecaptchaPasswordCheck
 
-An Elixir port of Google's `recaptcha-password-check-helpers`, the client-side cryptography for reCAPTCHA's [private password leak
+An Elixir workalike of Google's `recaptcha-password-check-helpers`, the client-side cryptography for reCAPTCHA's [private password leak
 check](https://docs.cloud.google.com/recaptcha/docs/check-passwords).
 
 ## Installation
@@ -21,16 +21,13 @@ token = "my_super_secret_bearer_token"
 {:ok, verification} =
   RecaptchaPasswordCheck.create_verification("GabeN@valvesoftware.com", "MoolyFTW")
 
-%{
-  lookup_hash_prefix: lookup_hash_prefix,
-  encrypted_user_credentials_hash: encrypted_user_credentials_hash
-} = verification
-
 body = %{
   "privatePasswordLeakVerification" => %{
-    "lookupHashPrefix" => Base.encode64(lookup_hash_prefix),
-    "encryptedUserCredentialsHash" => Base.encode64(encrypted_user_credentials_hash)
-  }
+    "lookupHashPrefix" => Base.encode64(verification.lookup_hash_prefix),
+    "encryptedUserCredentialsHash" =>
+      Base.encode64(verification.encrypted_user_credentials_hash)
+  },
+  # "otherReCaptchaAssessmentFields" => "..."
 }
 
 response =
@@ -40,29 +37,18 @@ response =
     receive_timeout: 5_000
   )
 
-leak = response.body["privatePasswordLeakVerification"]
+if response.status == 200 do
+  object = Map.fetch!(response.body, "privatePasswordLeakVerification")
 
-%{
-  "privatePasswordLeakVerification" => %{
-    "reencryptedUserCredentialsHash" => reencrypted_user_credentials_hash,
-    "encryptedLeakMatchPrefixes" => encrypted_leak_match_prefixes
-  }
-} = response.body
-
-reencrypted_user_credentials_hash = Base.decode64!(reencrypted_user_credentials_hash)
-encrypted_leak_match_prefixes = Enum.map(encrypted_leak_match_prefixes, &Base.decode64!/1)
-
-# was the canonicalized-username and password combination leaked?
-RecaptchaPasswordCheck.leaked?(
-  verification,
-  reencrypted_user_credentials_hash,
-  encrypted_leak_match_prefixes
-)
+  RecaptchaPasswordCheck.leaked?(
+    verification,
+    Base.decode64!(Map.fetch!(object, "reencryptedUserCredentialsHash")),
+    object |> Map.get("encryptedLeakMatchPrefixes", []) |> Enum.map(&Base.decode64!/1)
+  )
+end
 ```
 
 Get the bearer token above from `goth`, or send an API key instead — though a key brings application and API restrictions that fail with an opaque `API key not valid`.
-
-Password defense requires the **Premium** tier. Assessments are free up to 10,000 per calendar month per organization, then $8 flat to 100,000.
 
 ## Testing
 
@@ -82,4 +68,4 @@ Passwords are never stored on the `Verification` struct, and inspecting it redac
 
 ## Attribution
 
-A port of Apache-2.0 licensed work by Google LLC. See `NOTICE`.
+A workalike of Apache-2.0 licensed work by Google LLC. See `NOTICE`.

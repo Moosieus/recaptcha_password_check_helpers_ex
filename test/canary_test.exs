@@ -120,22 +120,13 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
     #{inspect(response.body, pretty: true)}
     """
 
-    leak = response.body["privatePasswordLeakVerification"]
+    object = Map.fetch!(response.body, "privatePasswordLeakVerification")
 
     RecaptchaPasswordCheck.leaked?(
       verification,
-      decode64!(leak["reencryptedUserCredentialsHash"]),
-      Enum.map(leak["encryptedLeakMatchPrefixes"] || [], &decode64!/1)
+      Base.decode64!(Map.fetch!(object, "reencryptedUserCredentialsHash")),
+      object |> Map.get("encryptedLeakMatchPrefixes", []) |> Enum.map(&Base.decode64!/1)
     )
-  end
-
-  # The REST API is documented as standard base64, but proto JSON emits the URL-safe alphabet in
-  # some cases, so accept either.
-  defp decode64!(encoded) do
-    case Base.decode64(encoded, padding: false) do
-      {:ok, decoded} -> decoded
-      :error -> Base.url_decode64!(encoded, padding: false)
-    end
   end
 
   defp usage do

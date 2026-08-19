@@ -28,7 +28,8 @@ defmodule RecaptchaPasswordCheck do
   defdelegate create_verification(username, password), to: Verification, as: :create
 
   @doc """
-  Whether the service reported the credentials behind `verification` as leaked.
+  Unblinds the response fields using the `verification` and returns `true` if the credentials
+  were found in a leak corpus.
   """
   defdelegate leaked?(verification, reencrypted_hash, match_prefixes), to: Verification
 end
