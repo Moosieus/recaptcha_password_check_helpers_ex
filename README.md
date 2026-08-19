@@ -40,14 +40,29 @@ response =
     receive_timeout: 5_000
   )
 
-if response.status == 200 do
-  object = Map.fetch!(response.body, "privatePasswordLeakVerification")
+# Short of adopting `:protobuf` to restore proto3's presence semantics,
+# the response shapes have to be spelled out by hand.
+case response do
+  %{
+    status: 200,
+    body: %{
+      "privatePasswordLeakVerification" => %{
+        "reencryptedUserCredentialsHash" => reencrypted_user_credentials_hash,
+        "encryptedLeakMatchPrefixes" => encrypted_leak_match_prefixes
+      }
+    }
+  } ->
+    RecaptchaPasswordCheck.leaked?(
+      verification,
+      Base.decode64!(reencrypted_user_credentials_hash),
+      Enum.map(encrypted_leak_match_prefixes, &Base.decode64!/1)
+    )
 
-  RecaptchaPasswordCheck.leaked?(
-    verification,
-    Base.decode64!(Map.fetch!(object, "reencryptedUserCredentialsHash")),
-    object |> Map.get("encryptedLeakMatchPrefixes", []) |> Enum.map(&Base.decode64!/1)
-  )
+  %{status: 200, body: %{"privatePasswordLeakVerification" => _}} ->
+    false
+
+  %{status: status, body: body} ->
+    {:error, {status, body}}
 end
 ```
 

@@ -6,10 +6,9 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
 
   Parity fixtures prove this implementation matches Google's *library*. This proves it still
   matches Google's *server*, which is the failure the fixtures cannot see: if the protocol ever
-  changes, the credential below stops being reported as leaked. Worth running on a schedule, not
-  just on demand.
+  changes, the credential below stops being reported as leaked.
 
-  Authenticate with a short-lived access token, which the gcloud CLI hands over directly:
+  Authenticate with a short-lived access token which the gcloud CLI hands over directly:
 
       RECAPTCHA_PROJECT_ID=my-project \\
         GOOGLE_CLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token) \\
@@ -65,16 +64,12 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
     refute assess(verification, context)
   end
 
-  # A token carries the caller's own IAM permissions, so there is no key to create, restrict, or
-  # store, and nothing long-lived ends up in a shell history.
   defp auth_headers do
     with {:ok, token} <- present(System.get_env("GOOGLE_CLOUD_ACCESS_TOKEN")) do
       {:ok, [{"authorization", "Bearer " <> token}]}
     end
   end
 
-  # Trimming matters: a credential pasted into a shell or read from a file routinely carries a
-  # trailing newline, and Google rejects that without explaining why.
   defp present(value) when is_binary(value) do
     case String.trim(value) do
       "" -> :missing
@@ -106,13 +101,15 @@ defmodule RecaptchaPasswordCheck.CanaryTest do
     #{inspect(response.body, pretty: true)}
     """
 
-    object = Map.fetch!(response.body, "privatePasswordLeakVerification")
+    %{"privatePasswordLeakVerification" => leak} = response.body
+    %{"reencryptedUserCredentialsHash" => reencrypted_hash} = leak
 
-    RecaptchaPasswordCheck.leaked?(
-      verification,
-      Base.decode64!(Map.fetch!(object, "reencryptedUserCredentialsHash")),
-      object |> Map.get("encryptedLeakMatchPrefixes", []) |> Enum.map(&Base.decode64!/1)
-    )
+    reencrypted_hash = Base.decode64!(reencrypted_hash)
+
+    match_prefixes =
+      leak |> Map.get("encryptedLeakMatchPrefixes", []) |> Enum.map(&Base.decode64!/1)
+
+    RecaptchaPasswordCheck.leaked?(verification, reencrypted_hash, match_prefixes)
   end
 
   defp usage do
