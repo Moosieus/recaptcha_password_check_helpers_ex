@@ -20,6 +20,6 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-recaptcha_password_check_helpers_ex-*.tar
+recaptcha_password_check-*.tar
 
 .expert/

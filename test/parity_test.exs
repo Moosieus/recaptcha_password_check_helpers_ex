@@ -52,7 +52,9 @@ defmodule RecaptchaPasswordCheck.ParityTest do
 
     test "bucket prefix matches", %{vectors: vectors} do
       for %{"canonicalized_username" => canonical} = vector <- vectors do
-        assert hex(CryptoHelper.bucketize_username(canonical)) == vector["lookup_hash_prefix_hex"],
+        bucket = hex(CryptoHelper.bucketize_username(canonical))
+
+        assert bucket == vector["lookup_hash_prefix_hex"],
                "bucket prefix diverged for #{inspect(vector["username"])}"
       end
     end

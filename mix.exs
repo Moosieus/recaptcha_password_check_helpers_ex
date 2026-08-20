@@ -1,14 +1,14 @@
-defmodule RecaptchaPasswordCheckHelpersEx.MixProject do
+defmodule RecaptchaPasswordCheck.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/nethealth/recaptcha_password_check_helpers_ex"
+  @source_url "https://github.com/moosieus/recaptcha_password_check"
 
   def project do
     [
-      app: :recaptcha_password_check_helpers_ex,
+      app: :recaptcha_password_check,
       version: @version,
-      elixir: "~> 1.19",
+      elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
@@ -21,7 +21,7 @@ defmodule RecaptchaPasswordCheckHelpersEx.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :crypto]
+      extra_applications: [:crypto]
     ]
   end
 
@@ -34,8 +34,7 @@ defmodule RecaptchaPasswordCheckHelpersEx.MixProject do
   end
 
   defp description do
-    "Client-side cryptography for reCAPTCHA's private password leak check, " <>
-      "a workalike of Google's recaptcha-password-check-helpers."
+    "Client-side cryptography for reCAPTCHA's private password leak check, a workalike of Google's java-recaptcha-password-check-helpers."
   end
 
   defp package do

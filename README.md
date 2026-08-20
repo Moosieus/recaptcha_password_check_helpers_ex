@@ -7,9 +7,11 @@ check](https://docs.cloud.google.com/recaptcha/docs/check-passwords).
 
 ```elixir
 def deps do
-  [{:recaptcha_password_check_helpers_ex, "~> 0.1"}]
+  [{:recaptcha_password_check, "~> 0.1"}]
 end
 ```
+
+Documentation is available on [HexDocs](https://recaptcha-password-check.hexdocs.pm/readme.html) and may also be generated with [ExDoc](https://github.com/elixir-lang/ex_doc).
 
 ## Example Usage
 
@@ -66,7 +68,7 @@ case response do
 end
 ```
 
-Get the token from `goth` in an application, or from `gcloud auth print-access-token` when trying this out by hand.
+Get the token from `:goth` in an application or from `gcloud auth print-access-token` when trying this out by hand.
 
 <!-- MDOC !-->
 
@@ -74,11 +76,9 @@ Get the token from `goth` in an application, or from `gcloud auth print-access-t
 
 See [TESTING.md](TESTING.md).
 
-## Build notes
+## Building
 
-**macOS.** The scrypt NIF's Makefile assigns its Darwin link flags with `?=`, so an inherited `LDFLAGS` replaces rather than extends them and the NIF fails to link with undefined `_enif_*` symbols. If you export `LDFLAGS` globally (for example for `libpq`), either compile with `env -u LDFLAGS mix deps.compile scrypt` or append `-undefined dynamic_lookup` to your exported value.
-
-**Native dependency.** scrypt is a NIF, so building needs a C compiler and `make`. The official `elixir:*` images carry both, and it builds on Debian for amd64 and arm64 alike.
+The `scrypt` NIF needs a C compiler and `make`. On macOS an exported `LDFLAGS` clobbers the link flags it needs, which may require using `env -u LDFLAGS mix compile`.
 
 ## Attribution
 

@@ -1,0 +1,21 @@
+name: Lint Commit
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  commitlint:
+    name: commitlint
+    runs-on: ubuntu-latest
+
+    steps:
+      # Reads the pull request title over the API, so it never checks out or runs
+      # PR code. That matters here: `pull_request_target` runs with repository
+      # secrets in scope.
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
