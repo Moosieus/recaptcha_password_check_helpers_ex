@@ -1,7 +1,7 @@
 name: Lint Commit
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize, edited]
 
 permissions:
@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Reads the pull request title over the API, so it never checks out or runs
-      # PR code. That matters here: `pull_request_target` runs with repository
-      # secrets in scope.
+      # Reads the pull request title straight out of the event payload, so it needs
+      # neither a checkout nor repository secrets. `pull_request_target` would grant
+      # both for no benefit, and GitHub declines to run it at all for pull requests
+      # opened by github-actions[bot], which is how release-please's own PR ends up
+      # permanently missing this check.
       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
