@@ -7,7 +7,7 @@ check](https://docs.cloud.google.com/recaptcha/docs/check-passwords).
 
 ```elixir
 def deps do
-  [{:recaptcha_password_check, "~> 0.1"}]
+  [{:recaptcha_password_check, "~> 0.1.0"}]
 end
 ```
 

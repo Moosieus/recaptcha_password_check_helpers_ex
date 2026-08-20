@@ -86,7 +86,22 @@ jobs:
       - name: Compile without warnings
         run: mix compile --warnings-as-errors --force
 
-      # Catches package/`files` drift, notably that README.md still ships: the moduledoc
-      # splices its example out of the README at compile time.
+      # Guards `package.files`: the moduledoc splices its example out of README.md at
+      # compile time, so dropping it fails here. Does not validate `docs.extras`.
       - name: Build the Hex package
         run: mix hex.build
+
+  # One stable required status check, so the ruleset survives matrix changes.
+  # `if: always()` is load-bearing -- without it this job is skipped when a
+  # dependency fails, and a skipped check can satisfy a branch rule.
+  gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs: [test, quality]
+    if: always()
+
+    steps:
+      - name: Fail unless every job succeeded
+        run: |
+          [ "${{ needs.test.result }}" = "success" ] || exit 1
+          [ "${{ needs.quality.result }}" = "success" ] || exit 1
