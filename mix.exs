@@ -2,7 +2,7 @@ defmodule RecaptchaPasswordCheck.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/moosieus/recaptcha_password_check"
+  @source_url "https://github.com/Moosieus/recaptcha_password_check_helpers_ex"
 
   def project do
     [
