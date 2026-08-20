@@ -27,8 +27,10 @@ defmodule RecaptchaPasswordCheck.EcCommutativeCipherTest do
     end
 
     # Roughly half of candidate x-coordinates are not on the curve, so a sample
-    # this size exercises the re-hash path many times over. A wrong retry
-    # encoding would diverge from the reference here and nowhere else.
+    # this size exercises the re-hash path many times over. It asserts only that
+    # the result is self-consistent; byte-level agreement with the reference retry
+    # encoding comes from the parity fixtures, whose inputs include usernames that
+    # retry.
     test "handles the re-hash path across many inputs" do
       for i <- 1..100 do
         assert {:ok, point} =

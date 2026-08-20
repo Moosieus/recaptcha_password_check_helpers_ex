@@ -41,14 +41,14 @@ defmodule RecaptchaPasswordCheck.MixProject do
     [
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib mix.exs README.md LICENSE NOTICE)
+      files: ~w(lib mix.exs README.md CHANGELOG.md TESTING.md LICENSE NOTICE)
     ]
   end
 
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "TESTING.md"],
+      extras: ["README.md", "CHANGELOG.md", "TESTING.md"],
       source_ref: "v#{@version}"
     ]
   end
