@@ -18,6 +18,6 @@ jobs:
       # both for no benefit, and GitHub declines to run it at all for pull requests
       # opened by github-actions[bot], which is how release-please's own PR ends up
       # permanently missing this check.
-      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+      - uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
